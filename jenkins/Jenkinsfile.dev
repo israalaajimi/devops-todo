@@ -1,0 +1,53 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('Setup') {
+      steps {
+        sh 'echo "Install deps (none needed on root)"; ls -la'
+      }
+    }
+    stage('Parallel Builds') {
+      parallel {
+        stage('Build: Node') {
+          steps {
+            sh 'docker build --target build -t devops-todo:dev-node -f Dockerfile . || true'
+          }
+        }
+        stage('Build: Slim Image') {
+          steps {
+            sh 'docker build -t devops-todo:dev-slim -f Dockerfile . || true'
+          }
+        }
+      }
+    }
+    stage('Run (Docker)') {
+      steps {
+        sh '''
+          docker rm -f devops-todo-dev || true
+          docker run -d --name devops-todo-dev -p 3002:3000 devops-todo:dev-slim
+        '''
+      }
+    }
+    stage('Smoke Test') {
+      steps {
+        sh './scripts/smoke.sh http://localhost:3002'
+      }
+    }
+    stage('Archive Artifacts') {
+      steps {
+        sh 'echo "dev build logs" > dev_build.log'
+        archiveArtifacts artifacts: 'dev_build.log', fingerprint: true
+      }
+    }
+    stage('Cleanup') {
+      steps {
+        sh 'docker rm -f devops-todo-dev || true'
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('Setup') {
+      steps {
+        sh 'echo "Setup: node version"; node -v || true'
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'docker build -t devops-todo:pr -f Dockerfile .'
+      }
+    }
+    stage('Run (Docker)') {
+      steps {
+        sh '''
+          docker rm -f devops-todo-pr || true
+          docker run -d --name devops-todo-pr -p 3001:3000 devops-todo:pr
+        '''
+      }
+      post {
+        always {
+          sh 'sleep 2'
+        }
+      }
+    }
+    stage('Smoke Test') {
+      steps {
+        sh './scripts/smoke.sh http://localhost:3001'
+      }
+    }
+    stage('Archive Artifacts') {
+      steps {
+        sh 'echo "Archiving logs and smoke result" > smoke_result.txt || true'
+        archiveArtifacts artifacts: 'smoke_result.txt', fingerprint: true
+      }
+    }
+  }
+  post {
+    always {
+      sh 'docker rm -f devops-todo-pr || true'
+    }
+  }
+}
