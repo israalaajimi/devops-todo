@@ -38,10 +38,12 @@ pipeline {
     }
 
     stage('Smoke Test') {
-      steps {
-        bat 'bash scripts/smoke.sh http://localhost:3001'
-      }
-    }
+  steps {
+    bat "scripts\\smoke.bat http://localhost:3001"
+
+  }
+}
+
 
     stage('Archive Artifacts') {
       steps {
