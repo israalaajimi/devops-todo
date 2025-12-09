@@ -29,19 +29,24 @@ pipeline {
           docker run -d --name devops-todo-pr -p 3001:3000 devops-todo:pr
         '''
       }
-     post {
-  always {
-    bat 'timeout /T 2 >nul'
-  }
-}
-
+      post {
+        always {
+          // Pause compatible Windows/Jenkins
+          bat 'ping 127.0.0.1 -n 3 >nul'
+        }
+      }
     }
 
-   stage('Smoke Test') {
-  steps {
-    bat 'bash scripts/smoke.sh http://localhost:3001'
+  stage('Smoke Test') {
+    steps {
+        bat "scripts/smoke.bat http://localhost:8081"
+    }
+}
+
+
   }
 }
+
 
     stage('Archive Artifacts') {
       steps {
