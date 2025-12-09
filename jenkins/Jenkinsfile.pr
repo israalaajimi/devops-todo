@@ -37,9 +37,12 @@ pipeline {
       }
     }
 
-    stage('Smoke Test') {
-  steps {
-    bat "scripts\\smoke.bat http://localhost:3001"
+  stage('Smoke Test') {
+    steps {
+        bat "scripts/smoke.bat http://localhost:8081"
+    }
+}
+
 
   }
 }
