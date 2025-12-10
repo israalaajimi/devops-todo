@@ -21,21 +21,24 @@ pipeline {
         }
         stage('Run (Docker)') {
             steps {
-                bat '''
+                bat """
                     docker rm -f devops-todo-tag || exit 0
                     docker run -d --name devops-todo-tag -p 3003:3000 devops-todo:%TAG%
-                '''
+                """
             }
         }
         stage('Smoke Test') {
             steps {
-                bat 'scripts/smoke.bat http://localhost:3003'
+                bat """
+                    scripts\\smoke.bat http://localhost:3003
+                    echo Smoke test done > smoke_result.txt
+                """
             }
         }
         stage('Archive Artifacts') {
             steps {
-                bat 'docker image save devops-todo:%TAG% -o devops-todo-%TAG%.tar || exit 0'
-                archiveArtifacts artifacts: "devops-todo-%TAG%.tar,**/smoke_result.txt", fingerprint: true
+                bat 'docker image save devops-todo:%TAG% -o devops-todo-%TAG%.tar'
+                archiveArtifacts artifacts: "devops-todo-%TAG%.tar,smoke_result.txt", fingerprint: true
             }
         }
     }
@@ -45,6 +48,7 @@ pipeline {
         }
     }
 }
+
 // test trigger build
 
 //test build
