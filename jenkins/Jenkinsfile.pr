@@ -1,49 +1,51 @@
 pipeline {
-  agent any
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-    stage('Setup') {
-      steps {
-        sh 'echo "Setup: node version"; node -v || true'
-      }
-    }
-    stage('Build') {
-      steps {
-        sh 'docker build -t devops-todo:pr -f Dockerfile .'
-      }
-    }
-    stage('Run (Docker)') {
-      steps {
-        sh '''
-          docker rm -f devops-todo-pr || true
-          docker run -d --name devops-todo-pr -p 3001:3000 devops-todo:pr
-        '''
-      }
-      post {
-        always {
-          sh 'sleep 2'
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
+        stage('Setup') {
+            steps {
+                bat 'echo Setup: node version'
+                bat 'node -v || exit 0'
+            }
+        }
+        stage('Build') {
+            steps {
+                bat 'docker build -t devops-todo:pr -f Dockerfile .'
+            }
+        }
+        stage('Run (Docker)') {
+            steps {
+                bat '''
+                    docker rm -f devops-todo-pr || exit 0
+                    docker run -d --name devops-todo-pr -p 3001:3000 devops-todo:pr
+                '''
+            }
+            post {
+                always {
+                    bat 'ping 127.0.0.1 -n 3 >nul'
+                }
+            }
+        }
+        stage('Smoke Test') {
+            steps {
+                bat 'scripts/smoke.bat http://localhost:8081'
+            }
+        }
+        stage('Archive Artifacts') {
+            steps {
+                bat 'echo Archiving logs and smoke result > smoke_result.txt'
+                archiveArtifacts artifacts: 'smoke_result.txt', fingerprint: true
+            }
+        }
     }
-    stage('Smoke Test') {
-      steps {
-        sh './scripts/smoke.sh http://localhost:3001'
-      }
+    post {
+        always {
+            bat 'docker rm -f devops-todo-pr || exit 0'
+        }
     }
-    stage('Archive Artifacts') {
-      steps {
-        sh 'echo "Archiving logs and smoke result" > smoke_result.txt || true'
-        archiveArtifacts artifacts: 'smoke_result.txt', fingerprint: true
-      }
-    }
-  }
-  post {
-    always {
-      sh 'docker rm -f devops-todo-pr || true'
-    }
-  }
 }
+// trigger: small comment to force build (feature/add-login-ui)
